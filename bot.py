@@ -1,8 +1,9 @@
 import os
-import threading
 import asyncio
 from flask import Flask
 from pyrogram import Client, filters
+from pyrogram.idle import idle
+import threading
 
 # =========================
 # 🔐 ENV VARIABLES (RENDER)
@@ -10,6 +11,8 @@ from pyrogram import Client, filters
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 bot_token = os.getenv("BOT_TOKEN")
+
+# IMPORTANT: keep as int
 STORAGE_CHANNEL_ID = int(os.getenv("STORAGE_CHANNEL_ID"))
 
 # =========================
@@ -70,7 +73,7 @@ bot = Client(
 
 @bot.on_message(filters.command("start"))
 async def start(client, message):
-    if len(message.command) < 2:
+    if len(message.command) == 1:
         await message.reply(
             "Attack on Titan\n\n"
             "Season 1\n"
@@ -86,17 +89,34 @@ async def start(client, message):
         )
         return
 
-    q = message.command[1]
-    if q not in MAP:
+    key = message.command[1]
+
+    if key not in MAP:
         await message.reply("❌ Invalid option")
         return
 
-    for msg_id in MAP[q]:
-        await client.forward_messages(
-            chat_id=message.chat.id,
-            from_chat_id=STORAGE_CHANNEL_ID,
-            message_ids=msg_id
-        )
+    await message.reply("📤 Sending files... please wait")
+
+    for msg_id in MAP[key]:
+        try:
+            await client.forward_messages(
+                chat_id=message.chat.id,
+                from_chat_id=STORAGE_CHANNEL_ID,
+                message_ids=msg_id
+            )
+        except Exception as e:
+            print(f"Failed to forward {msg_id}: {e}")
+
+# =========================
+# 🧪 DEBUG COMMAND (DO NOT SKIP)
+# =========================
+@bot.on_message(filters.command("testforward"))
+async def testforward(client, message):
+    await client.forward_messages(
+        chat_id=message.chat.id,
+        from_chat_id=STORAGE_CHANNEL_ID,
+        message_ids=252
+    )
 
 # =========================
 # 🌐 FLASK (PORT OPENER)
@@ -111,8 +131,14 @@ def run_flask():
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
 
 # =========================
-# 🚀 MAIN ENTRY
+# 🚀 ASYNC MAIN (CORRECT WAY)
 # =========================
+async def main():
+    threading.Thread(target=run_flask, daemon=True).start()
+    await bot.start()
+    print("Bot started")
+    await idle()
+    await bot.stop()
+
 if __name__ == "__main__":
-    threading.Thread(target=run_flask).start()
-    bot.run()
+    asyncio.run(main())

@@ -9,7 +9,7 @@ from pyrogram import Client, filters, idle
 # =========================
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
-bot_token = os.getenv("BOT_TOKEN"))
+bot_token = os.getenv("BOT_TOKEN")
 STORAGE_CHANNEL_ID = int(os.getenv("STORAGE_CHANNEL_ID"))
 
 # =========================
